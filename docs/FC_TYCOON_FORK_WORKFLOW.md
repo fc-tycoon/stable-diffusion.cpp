@@ -44,7 +44,7 @@ Branch: `fc-tycoon/custom`
 
 Custom commit:
 
-- `c1fc29aa` `build(ggml-hip): gate MMF template sources`
+- `dd2d52f7` `build(ggml-hip): gate MMF template sources`
 
 Behavioral intent:
 
@@ -55,26 +55,31 @@ Behavioral intent:
 
 Branch: `fc-tycoon/custom`
 
-Custom commit:
+Custom commits:
 
-- `d34835d` `fix: preserve fc-tycoon stable-diffusion runtime fixes`
+- `0b9a2c0` `fix: preserve fc-tycoon stable-diffusion runtime fixes`
+- `4b5a7f5` `docs: add fc-tycoon fork workflow`
+- `3924449` `docs: add repeated-generate crash notes`
 
-Included changes:
+Included runtime changes:
 
 - CLI support for repeating image generation through `SD_CLI_REPEAT_GENERATE`.
 - Preview callback start-step support so preview generation can begin from a controlled step rather than always step 1.
 - Backend/device information accessors exported from the public API.
 - GGML abort logging hook during backend initialization.
 - LoRA diff-state pruning so zero-diff entries do not trigger unnecessary reloads.
-- Final latent persistence before compute-buffer teardown.
-- Parent repo submodule pointer updated to `ggml` commit `c1fc29aa`.
+- Parent repo submodule pointer updated to `ggml` commit `dd2d52f7`.
 
-## Local Scratch Files
-
-These are intentionally not part of the preserved code history:
+Supporting docs now committed on the branch:
 
 - `CRASH_REPEAT_GENERATE_ROOT_CAUSE.md`
 - `UPSTREAM_PR_DESCRIPTION_GENERIC.md`
+- `docs/FC_TYCOON_FORK_WORKFLOW.md`
+
+## Local Scratch Files
+
+This is intentionally not part of the preserved code history:
+
 - `tmp/`
 
 `tmp/` is ignored in `.gitignore` because it contains generated outputs and investigation artifacts rather than source.
@@ -135,10 +140,23 @@ git -C "C:\dev\fc-tycoon-go\stable-diffusion.cpp" switch fc-tycoon/custom
 git -C "C:\dev\fc-tycoon-go\stable-diffusion.cpp" rebase upstream/master
 ```
 
+On this Windows clone, Git may fail here with:
+
+```text
+fatal: invalid commit position. commit-graph is likely corrupt
+```
+
+If that happens, rerun the rebase with commit-graph reading disabled for that invocation:
+
+```powershell
+git -c core.commitGraph=false -C "C:\dev\fc-tycoon-go\stable-diffusion.cpp" rebase upstream/master
+```
+
 If conflicts appear:
 
 - resolve the parent repo files
 - make sure the `ggml` submodule pointer stays on the intended rebased custom commit
+- if the rebase stops on the `ggml` submodule, move `stable-diffusion.cpp/ggml` to the rebased `fc-tycoon/custom` commit and then run `git add ggml`
 - continue with `git -C "C:\dev\fc-tycoon-go\stable-diffusion.cpp" rebase --continue`
 
 When the rebase is complete:
