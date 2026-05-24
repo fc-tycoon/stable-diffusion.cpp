@@ -93,6 +93,7 @@ sd_preview_cb_t sd_get_preview_callback();
 void* sd_get_preview_callback_data();
 preview_t sd_get_preview_mode();
 int sd_get_preview_interval();
+int sd_get_preview_start_step();
 bool sd_should_preview_denoised();
 bool sd_should_preview_noisy();
 

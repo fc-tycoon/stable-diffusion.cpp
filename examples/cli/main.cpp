@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -570,6 +571,10 @@ int main(int argc, const char* argv[]) {
         return 0;
     }
 
+    int repeat_generates = 1;
+    if (const char* repeat_env = std::getenv("SD_CLI_REPEAT_GENERATE")) {
+        repeat_generates = std::max(1, std::atoi(repeat_env));
+    }
     if (gen_params.video_frames > 4) {
         size_t last_dot_pos   = cli_params.preview_path.find_last_of(".");
         std::string base_path = cli_params.preview_path;
@@ -590,6 +595,7 @@ int main(int argc, const char* argv[]) {
     sd_set_preview_callback(step_callback,
                             cli_params.preview_method,
                             cli_params.preview_interval,
+                            std::max(1, cli_params.preview_interval),
                             !cli_params.preview_noisy,
                             cli_params.preview_noisy,
                             (void*)&cli_params);
@@ -777,8 +783,19 @@ int main(int argc, const char* argv[]) {
         if (cli_params.mode == IMG_GEN) {
             sd_img_gen_params_t img_gen_params = gen_params.to_sd_img_gen_params_t();
 
-            num_results = gen_params.batch_count;
-            results.adopt(generate_image(sd_ctx.get(), &img_gen_params), num_results);
+            for (int generate_index = 0; generate_index < repeat_generates; ++generate_index) {
+                LOG_INFO("IMG_GEN call %d/%d", generate_index + 1, repeat_generates);
+                results.adopt(generate_image(sd_ctx.get(), &img_gen_params), gen_params.batch_count);
+                num_results = results.count();
+
+                if (!results) {
+                    break;
+                }
+
+                if (generate_index + 1 < repeat_generates) {
+                    results.clear();
+                }
+            }
         } else if (cli_params.mode == VID_GEN) {
             sd_vid_gen_params_t vid_gen_params = gen_params.to_sd_vid_gen_params_t();
             sd_image_t* generated_video        = nullptr;

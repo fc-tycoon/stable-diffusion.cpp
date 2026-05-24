@@ -240,6 +240,9 @@ public:
             sampler_rng = rng;
         }
 
+        ggml_set_abort_callback([](const char* message) {
+            LOG_ERROR("GGML abort: %s", message);
+        });
         ggml_log_set(ggml_log_callback_default, nullptr);
 
         if (!init_backend(sd_ctx_params)) {
@@ -1259,6 +1262,18 @@ public:
             lora_state_diff[lora_name] -= curr_multiplier;
         }
 
+        // Prune zero-diff entries so the empty() check works correctly.
+        // Without this, unchanged LoRAs (new == old → diff 0.0) keep their
+        // map key and cause a full reload from disk every generate call.
+        // FC Tycoon patch — applied to stable-diffusion.cpp upstream source.
+        for (auto it = lora_state_diff.begin(); it != lora_state_diff.end(); ) {
+            if (std::abs(it->second) < 1e-6f) {
+                it = lora_state_diff.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
         if (lora_state_diff.empty()) {
             return;
         }
@@ -1905,6 +1920,25 @@ public:
         sd::Tensor<float> denoised   = x_t;
         SamplePreviewContext preview = prepare_sample_preview_context();
 
+        auto should_emit_preview = [&](int current_step) {
+            const int total_steps = static_cast<int>(steps);
+            if (total_steps > 0 && current_step >= total_steps) {
+                return false;
+            }
+            int preview_interval = sd_get_preview_interval();
+            if (preview_interval < 1) {
+                preview_interval = 1;
+            }
+            int preview_start_step = sd_get_preview_start_step();
+            if (preview_start_step < 1) {
+                preview_start_step = 1;
+            }
+            if (current_step < preview_start_step) {
+                return false;
+            }
+            return current_step == preview_start_step || ((current_step - preview_start_step) % preview_interval) == 0;
+        };
+
         auto denoise = [&](const sd::Tensor<float>& x, float sigma, int step) -> sd::guidance::GuiderOutput {
             if (step == 1 || step == -1) {
                 pretty_progress(0, (int)steps, 0);
@@ -1951,7 +1985,7 @@ public:
                 return output;
             }
 
-            if (sd_should_preview_noisy() && preview.callback != nullptr) {
+            if (sd_should_preview_noisy() && preview.callback != nullptr && should_emit_preview(step)) {
                 preview_image(step, noised_input, version, preview.mode, preview.callback, preview.data, true);
             }
 
@@ -2088,7 +2122,7 @@ public:
             if (!denoise_mask.empty()) {
                 denoised = denoised * denoise_mask + init_latent * (1.0f - denoise_mask);
             }
-            if (sd_should_preview_denoised() && preview.callback != nullptr) {
+            if (sd_should_preview_denoised() && preview.callback != nullptr && should_emit_preview(step)) {
                 preview_image(step, denoised, version, preview.mode, preview.callback, preview.data, false);
             }
             report_sample_progress(step, steps, t0);
@@ -2911,6 +2945,36 @@ SD_API bool sd_ctx_supports_video_generation(const sd_ctx_t* sd_ctx) {
         return false;
     }
     return sd_version_supports_video_generation(sd_ctx->sd->version);
+
+const char* sd_get_backend_name(const sd_ctx_t* sd_ctx) {
+    if (sd_ctx == nullptr || sd_ctx->sd == nullptr || sd_ctx->sd->backend == nullptr) {
+        return nullptr;
+    }
+    return ggml_backend_name(sd_ctx->sd->backend);
+}
+
+const char* sd_get_backend_device_name(const sd_ctx_t* sd_ctx) {
+    if (sd_ctx == nullptr || sd_ctx->sd == nullptr || sd_ctx->sd->backend == nullptr) {
+        return nullptr;
+    }
+
+    ggml_backend_dev_t device = ggml_backend_get_device(sd_ctx->sd->backend);
+    if (device == nullptr) {
+        return nullptr;
+    }
+    return ggml_backend_dev_name(device);
+}
+
+const char* sd_get_backend_device_description(const sd_ctx_t* sd_ctx) {
+    if (sd_ctx == nullptr || sd_ctx->sd == nullptr || sd_ctx->sd->backend == nullptr) {
+        return nullptr;
+    }
+
+    ggml_backend_dev_t device = ggml_backend_get_device(sd_ctx->sd->backend);
+    if (device == nullptr) {
+        return nullptr;
+    }
+    return ggml_backend_dev_description(device);
 }
 
 enum sample_method_t sd_get_default_sample_method(const sd_ctx_t* sd_ctx) {
