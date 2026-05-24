@@ -26,6 +26,31 @@ Current remote intent:
 - `ggml` repo `upstream`: `https://github.com/leejet/ggml.git`
 - `ggml` repo `origin`: `git@github.com:fc-tycoon/ggml.git`
 
+## Build State
+
+For FC Tycoon builds, the parent repo should be checked out on `fc-tycoon/custom`.
+
+`ggml` is different: the build should use the exact submodule commit pinned by the parent repo. That means a detached `HEAD` inside `stable-diffusion.cpp/ggml` is a valid and expected build state after `git submodule update`.
+
+Before building, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\script\ensure_fc_tycoon_build_state.ps1
+```
+
+If you also need the server frontend submodule initialized, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\script\ensure_fc_tycoon_build_state.ps1 -IncludeServerFrontend
+```
+
+That helper:
+
+- verifies the parent repo is on `fc-tycoon/custom`
+- initializes the build-relevant submodules
+- verifies `ggml` matches the exact commit pinned by the parent repo
+- reports whether `ggml` is detached or on `fc-tycoon/custom`
+
 ## Why The Branches Are Split
 
 The goal is to keep vendor history and FC Tycoon changes separate.
@@ -171,6 +196,7 @@ git -C "C:\dev\fc-tycoon-go\stable-diffusion.cpp" push --force-with-lease origin
 - Do not use plain `git pull` on `fc-tycoon/custom` unless the configured pull behavior is explicitly what you intend.
 - Prefer `fetch`, inspect, then `rebase`.
 - Rebase `ggml` before rebasing the parent repo.
+- Before building, verify parent branch state and pinned submodule state with `script/ensure_fc_tycoon_build_state.ps1`.
 - Keep generated investigation output under `tmp/` so it stays ignored.
 
 ## Quick Recovery Checks

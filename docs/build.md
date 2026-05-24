@@ -16,6 +16,20 @@ git submodule init
 git submodule update
 ```
 
+## FC Tycoon Fork Build Prep
+
+If you are building the FC Tycoon fork rather than upstream, run this before configuring CMake:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\script\ensure_fc_tycoon_build_state.ps1
+```
+
+This expects the parent repo to be on `fc-tycoon/custom`, initializes the build-relevant submodules, and verifies that `ggml/` is checked out at the exact commit pinned by the parent repo.
+
+`ggml` may remain on detached `HEAD` after this. That is the correct build state for the parent repo build, because the build consumes the pinned submodule commit rather than a branch name.
+
+If you also need the server frontend submodule initialized, add `-IncludeServerFrontend`.
+
 ## WebP and WebM Support in Examples
 
 The example applications (`examples/cli` and `examples/server`) use `libwebp` to support WebP image I/O, and `examples/cli` can also use `libwebm` for `.webm` video output. Both are enabled by default. WebM output currently reuses `libwebp` to encode each frame as VP8 before muxing with `libwebm`.
