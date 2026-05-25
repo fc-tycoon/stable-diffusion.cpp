@@ -100,7 +100,7 @@ API and command-line option may change frequently.***
 ### Get the sd executable
 
 - Download pre-built binaries from the [releases page](https://github.com/leejet/stable-diffusion.cpp/releases)
-- Or build from source by following the [build guide](./docs/build.md)
+- Or build from source by following the [build guide](./docs/BUILD.md)
 
 ### Download model weights
 

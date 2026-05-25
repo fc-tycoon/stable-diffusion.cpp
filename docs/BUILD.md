@@ -18,7 +18,9 @@ git submodule update
 
 ## FC Tycoon Fork Build Prep
 
-If you are building the FC Tycoon fork rather than upstream, run this before configuring CMake:
+If you are building the FC Tycoon fork through the root workspace Taskfile, the facegen tasks already run the FC Tycoon build-state helper for you.
+
+Run this manually only when you are configuring CMake directly inside `stable-diffusion.cpp/` rather than going through the root Taskfile:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\script\ensure_fc_tycoon_build_state.ps1

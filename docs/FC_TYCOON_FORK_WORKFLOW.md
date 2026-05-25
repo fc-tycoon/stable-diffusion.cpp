@@ -32,7 +32,9 @@ For FC Tycoon builds, the parent repo should be checked out on `fc-tycoon/custom
 
 `ggml` is different: the build should use the exact submodule commit pinned by the parent repo. That means a detached `HEAD` inside `stable-diffusion.cpp/ggml` is a valid and expected build state after `git submodule update`.
 
-Before building, run:
+If you are building through the root FC Tycoon Taskfile, the facegen build tasks already run the build-state helper automatically.
+
+Run the helper manually only if you are invoking CMake or vendor build scripts directly from inside `stable-diffusion.cpp/`:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\script\ensure_fc_tycoon_build_state.ps1
@@ -50,6 +52,15 @@ That helper:
 - initializes the build-relevant submodules
 - verifies `ggml` matches the exact commit pinned by the parent repo
 - reports whether `ggml` is detached or on `fc-tycoon/custom`
+
+In the root workspace, these Taskfile entrypoints run that helper automatically before the facegen build script:
+
+- `task facegen:build:dll`
+- `task facegen:build:dll:cpu`
+- `task facegen:build:dll:vulkan`
+- `task facegen:build:dll:cuda`
+- `task facegen:build:dll:cuda12`
+- `task facegen:build:dll:cuda13`
 
 ## Why The Branches Are Split
 

@@ -2945,20 +2945,30 @@ SD_API bool sd_ctx_supports_video_generation(const sd_ctx_t* sd_ctx) {
         return false;
     }
     return sd_version_supports_video_generation(sd_ctx->sd->version);
+}
 
-const char* sd_get_backend_name(const sd_ctx_t* sd_ctx) {
-    if (sd_ctx == nullptr || sd_ctx->sd == nullptr || sd_ctx->sd->backend == nullptr) {
+static ggml_backend_t sd_get_primary_runtime_backend(const sd_ctx_t* sd_ctx) {
+    if (sd_ctx == nullptr || sd_ctx->sd == nullptr) {
         return nullptr;
     }
-    return ggml_backend_name(sd_ctx->sd->backend);
+    return sd_ctx->sd->backend_manager.runtime_backend(SDBackendModule::DIFFUSION);
+}
+
+const char* sd_get_backend_name(const sd_ctx_t* sd_ctx) {
+    ggml_backend_t backend = sd_get_primary_runtime_backend(sd_ctx);
+    if (backend == nullptr) {
+        return nullptr;
+    }
+    return ggml_backend_name(backend);
 }
 
 const char* sd_get_backend_device_name(const sd_ctx_t* sd_ctx) {
-    if (sd_ctx == nullptr || sd_ctx->sd == nullptr || sd_ctx->sd->backend == nullptr) {
+    ggml_backend_t backend = sd_get_primary_runtime_backend(sd_ctx);
+    if (backend == nullptr) {
         return nullptr;
     }
 
-    ggml_backend_dev_t device = ggml_backend_get_device(sd_ctx->sd->backend);
+    ggml_backend_dev_t device = ggml_backend_get_device(backend);
     if (device == nullptr) {
         return nullptr;
     }
@@ -2966,11 +2976,12 @@ const char* sd_get_backend_device_name(const sd_ctx_t* sd_ctx) {
 }
 
 const char* sd_get_backend_device_description(const sd_ctx_t* sd_ctx) {
-    if (sd_ctx == nullptr || sd_ctx->sd == nullptr || sd_ctx->sd->backend == nullptr) {
+    ggml_backend_t backend = sd_get_primary_runtime_backend(sd_ctx);
+    if (backend == nullptr) {
         return nullptr;
     }
 
-    ggml_backend_dev_t device = ggml_backend_get_device(sd_ctx->sd->backend);
+    ggml_backend_dev_t device = ggml_backend_get_device(backend);
     if (device == nullptr) {
         return nullptr;
     }
